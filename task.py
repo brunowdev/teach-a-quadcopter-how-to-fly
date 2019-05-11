@@ -29,7 +29,11 @@ class Task():
     def get_reward(self):
         """Uses current pose of sim to return reward."""
         z_axis_index = 2
-        reward = np.tanh(1. - .3 * (abs(self.sim.pose[z_axis_index] - self.target_pos[z_axis_index])).sum())
+        reward = np.tanh(1. - .03 * (abs(self.sim.pose[z_axis_index] - self.target_pos[z_axis_index])).sum())
+        
+        if self.sim.pose[z_axis_index] > self.target_pos[z_axis_index]:
+            reward = 1
+        
         return reward
 
     def step(self, rotor_speeds):
