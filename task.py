@@ -43,7 +43,6 @@ class Task():
             reward = 100 + (abs(self.sim.pose[z_axis_index] - self.target_pos[z_axis_index])/self.target_pos[z_axis_index]) * 100 
             
         if self.sim.done and self.sim.time < self.sim.runtime:
-            print('satanais')
             reward = -100 + abs(self.sim.pose[z_axis_index] - self.target_pos[z_axis_index]) * self.sim.time
         
         return reward
