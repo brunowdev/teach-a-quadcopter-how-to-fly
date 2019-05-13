@@ -1,6 +1,11 @@
 import numpy as np
 from physics_sim import PhysicsSim
 
+import math
+import gym
+import gym.spaces
+import gym.envs
+
 class Task():
     """Task (environment) that defines the goal and provides feedback to the agent."""
     def __init__(self, init_pose=None, init_velocities=None, 
@@ -25,14 +30,21 @@ class Task():
 
         # Goal
         self.target_pos = target_pos if target_pos is not None else np.array([0., 0., 10.]) 
+        
+        self.viewer = None
 
     def get_reward(self):
         """Uses current pose of sim to return reward."""
         z_axis_index = 2
-        reward = np.tanh(1. - .03 * (abs(self.sim.pose[z_axis_index] - self.target_pos[z_axis_index])).sum())
+
+        reward = 10 * np.tanh(1. - .5 * abs(self.sim.pose[z_axis_index] - self.target_pos[z_axis_index]))
         
         if self.sim.pose[z_axis_index] > self.target_pos[z_axis_index]:
-            reward = 1
+            reward = 100 + (abs(self.sim.pose[z_axis_index] - self.target_pos[z_axis_index])/self.target_pos[z_axis_index]) * 100 
+            
+        if self.sim.done and self.sim.time < self.sim.runtime:
+            print('satanais')
+            reward = -100 + abs(self.sim.pose[z_axis_index] - self.target_pos[z_axis_index]) * self.sim.time
         
         return reward
 
@@ -40,9 +52,13 @@ class Task():
         """Uses action to obtain next state, reward, done."""
         reward = 0
         pose_all = []
+        end = 0
         for _ in range(self.action_repeat):
             done = self.sim.next_timestep(rotor_speeds) # update the sim pose and velocities
-            reward += self.get_reward() 
+            if done:
+                end+=1
+            if end == 1:
+                reward += self.get_reward() 
             pose_all.append(self.sim.pose)
         next_state = np.concatenate(pose_all)
         return next_state, reward, done
@@ -52,3 +68,4 @@ class Task():
         self.sim.reset()
         state = np.concatenate([self.sim.pose] * self.action_repeat) 
         return state
+    
