@@ -30,36 +30,49 @@ class Task():
 
         # Goal
         self.target_pos = target_pos if target_pos is not None else np.array([0., 0., 10.]) 
+        self.init_pose = init_pose if init_pose is not None else np.array([0., 0., 10.])
         
         self.viewer = None
 
-    def get_reward(self):
+    def get_rewards(self):
         """Uses current pose of sim to return reward."""
         z_axis_index = 2
-
-        reward = 10 * np.tanh(1. - .5 * abs(self.sim.pose[z_axis_index] - self.target_pos[z_axis_index]))
+        reward = 0
         
-        if self.sim.pose[z_axis_index] > self.target_pos[z_axis_index]:
-            reward = 100 + (abs(self.sim.pose[z_axis_index] - self.target_pos[z_axis_index])/self.target_pos[z_axis_index]) * 100 
-            
+        # the difference between the current and starting height
+        delta_h = abs(self.sim.pose[z_axis_index] - self.init_pose[z_axis_index])
+          
+        # if the quadcopter crashes
         if self.sim.done and self.sim.time < self.sim.runtime:
-            reward = -100 + abs(self.sim.pose[z_axis_index] - self.target_pos[z_axis_index]) * self.sim.time
+            reward = -10
+            
+        # if the quadcopter finishes below the start position
+        if self.sim.pose[z_axis_index] < self.init_pose[z_axis_index]:
+            reward += -1 * delta_h
+            
+        # if the quadcopter finishes above the start position
+        if self.sim.pose[z_axis_index] > self.init_pose[z_axis_index]:
+            reward = self.sim.pose[z_axis_index] - self.init_pose[z_axis_index]
+                    
+        # if the quadcopter finishes above the target position
+        if self.sim.pose[z_axis_index] > self.target_pos[z_axis_index]:
+            reward = self.sim.pose[z_axis_index] > self.target_pos[z_axis_index]
         
-        return reward
+        # if don't fall, the reward cannot be negative
+        if reward < 0 and self.sim.pose[z_axis_index] > 0:
+            reward = abs(reward)
+          
+        return 1 - (0.03 * np.tanh(reward))
 
     def step(self, rotor_speeds):
         """Uses action to obtain next state, reward, done."""
         reward = 0
-        pose_all = []
-        end = 0
         for _ in range(self.action_repeat):
             done = self.sim.next_timestep(rotor_speeds) # update the sim pose and velocities
-            if done:
-                end+=1
-            if end == 1:
-                reward += self.get_reward() 
+            reward += self.get_rewards() 
             pose_all.append(self.sim.pose)
         next_state = np.concatenate(pose_all)
+        reward = np.tanh(reward) * self.sim.pose[2]
         return next_state, reward, done
 
     def reset(self):
