@@ -1,9 +1,6 @@
 import random
 from collections import namedtuple, deque
-from keras import layers, models, optimizers
-from keras import backend as K
 import numpy as np
-import copy
 
 class ReplayBuffer:
     """Fixed-size buffer to store experience tuples."""
@@ -31,6 +28,9 @@ class ReplayBuffer:
     def __len__(self):
         """Return the current size of internal memory."""
         return len(self.memory)
+
+from keras import layers, models, optimizers
+from keras import backend as K
 
 class Actor:
     """Actor (Policy) Model."""
@@ -91,8 +91,6 @@ class Actor:
             inputs=[self.model.input, action_gradients, K.learning_phase()],
             outputs=[],
             updates=updates_op)
-        
-        
 class Critic:
     """Critic (Value) Model."""
 
@@ -151,8 +149,8 @@ class Critic:
             inputs=[*self.model.input, K.learning_phase()],
             outputs=action_gradients)
         
+
 class DDPG():
-    
     """Reinforcement Learning agent that learns using DDPG."""
     def __init__(self, task):
         self.task = task
@@ -174,19 +172,19 @@ class DDPG():
         self.actor_target.model.set_weights(self.actor_local.model.get_weights())
 
         # Noise process
-        self.exploration_mu = 2
+        self.exploration_mu = 0
         self.exploration_theta = 0.15
         self.exploration_sigma = 0.2
         self.noise = OUNoise(self.action_size, self.exploration_mu, self.exploration_theta, self.exploration_sigma)
 
         # Replay memory
         self.buffer_size = 100000
-        self.batch_size = 128
+        self.batch_size = 64
         self.memory = ReplayBuffer(self.buffer_size, self.batch_size)
 
         # Algorithm parameters
         self.gamma = 0.99  # discount factor
-        self.tau = 0.05  # for soft update of target parameters
+        self.tau = 0.01  # for soft update of target parameters
 
     def reset_episode(self):
         self.noise.reset()
@@ -247,7 +245,7 @@ class DDPG():
 
         new_weights = self.tau * local_weights + (1 - self.tau) * target_weights
         target_model.set_weights(new_weights)
-
+        
 class OUNoise:
     """Ornstein-Uhlenbeck process."""
 
@@ -260,7 +258,7 @@ class OUNoise:
 
     def reset(self):
         """Reset the internal state (= noise) to mean (mu)."""
-        self.state = copy.copy(self.mu)
+        self.state = self.mu
 
     def sample(self):
         """Update internal state and return it as a noise sample."""
