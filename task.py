@@ -34,8 +34,8 @@ class Task():
         
         self.viewer = None
       
-    def get_noise(self):
-        return abs(np.random.normal(.1, .5, 1)[0])
+    def get_noise(self, sb = .1, eb = .5):
+        return abs(np.random.normal(sb, eb, 1)[0])
 
     def get_reward(self, time_elaps, time_limit, start_position, end_position, target_position, done):
         """Uses current pose of sim to return reward."""
@@ -61,7 +61,10 @@ class Task():
         if reward < 0 and end_position > 0:
             reward += .5 * abs(self.get_noise()) + 1
 
-        return .7 + np.tanh(reward) * .3 
+        return reward 
+    
+    def sigmoid(self, x):
+        return 1 / (1 + np.e ** -x)
 
     def step(self, rotor_speeds):
         """Uses action to obtain next state, reward, done."""
@@ -69,11 +72,10 @@ class Task():
         pose_all = []
         for _ in range(self.action_repeat):
             done = self.sim.next_timestep(rotor_speeds) # update the sim pose and velocities
-            reward += self.get_reward(self.sim.time, self.sim.runtime, self.init_pose[2], self.sim.pose[2], self.target_pos[2], done)  # self.get_rewards() 
+            reward += self.get_reward(self.sim.time, self.sim.runtime, self.init_pose[2], self.sim.pose[2], self.target_pos[2], done)
             pose_all.append(self.sim.pose)
         next_state = np.concatenate(pose_all)
-        # reward = reward * (.01 if self.sim.pose[2] < 1 else self.sim.pose[2])
-        return next_state, reward, done
+        return next_state, self.sigmoid(reward) + self.get_noise(0, .1), done
 
     def reset(self):
         """Reset the sim to start a new episode."""
