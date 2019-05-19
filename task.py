@@ -57,7 +57,7 @@ class Task():
         if end_position > target_position:
             reward += 10
 
-        # if don't fall, the reward cannot be negative
+        # if don't fall, give a small reward
         if reward < 0 and end_position > 0:
             reward += .5 * abs(self.get_noise()) + 1
 
